@@ -55,6 +55,7 @@ hands_lock = threading.Lock()
 # ─── Per-Session State ────────────────────────────────────────────────────────
 sessions = {}
 sessions_lock = threading.Lock()
+word_inference_lock = threading.Lock()
 
 def get_session(session_id):
     with sessions_lock:
@@ -68,6 +69,40 @@ def get_session(session_id):
                 "sequence": [],       
             }
         return sessions[session_id]
+
+def run_word_inference(session_id, socket_id, sequence):
+    if not word_inference_lock.acquire(blocking=False):
+        return
+    try:
+        prediction = model_words(
+            np.expand_dims(sequence, axis=0), training=False
+        ).numpy()[0]
+        confidence = float(np.max(prediction))
+        sess = get_session(session_id)
+        if confidence >= 0.60:
+            word = gestures_words[np.argmax(prediction)]
+            now = time.time()
+            if word != sess['word'] or now > sess['display_until']:
+                sess['word'] = word
+                sess['confidence'] = confidence
+                sess['display_until'] = now + 2.0
+        socketio.emit('frame_result', {
+            "running": sess['running'],
+            "word": sess['word'] if sess['word'] != '...' else None,
+            "confidence": round(sess['confidence'] * 100, 1),
+            "sequence_progress": len(sess['sequence']),
+            "hand_progress": sum(np.any(frame != 0) for frame in sess['sequence']),
+            "image": None
+        }, to=socket_id)
+    except (ValueError, RuntimeError) as error:
+        socketio.emit('frame_result', {
+            "running": True,
+            "error": f"Words model inference failed: {error}",
+            "word": None,
+            "confidence": 0
+        }, to=socket_id)
+    finally:
+        word_inference_lock.release()
 
 def extract_landmarks(frame_bgr):
     small_frame = cv2.resize(frame_bgr, (160, 120))
@@ -214,30 +249,18 @@ def handle_process_frame_ws(data):
     # ── Words mode (75-Frame Sequence) ──
     elif mode == 'words':
         confidence_threshold = 0.60
-        sess['sequence'].append(
-            landmarks if landmarks is not None else np.zeros(21 * 3, dtype=np.float32)
-        )
-        sess['sequence'] = sess['sequence'][-sequence_length:]
+        with sessions_lock:
+            sess['sequence'].append(
+                landmarks if landmarks is not None else np.zeros(21 * 3, dtype=np.float32)
+            )
+            sess['sequence'] = sess['sequence'][-sequence_length:]
+            sequence = list(sess['sequence'])
 
-        hand_frame_count = sum(np.any(frame != 0) for frame in sess['sequence'])
-        if len(sess['sequence']) == sequence_length and hand_frame_count >= 10:
-            input_data = np.expand_dims(sess['sequence'], axis=0)
-            try:
-                prediction = model_words(input_data, training=False).numpy()[0]
-            except (ValueError, RuntimeError) as error:
-                emit('frame_result', {
-                    "running": True, "error": f"Words model inference failed: {error}",
-                    "word": None, "confidence": 0
-                })
-                return
-            conf = float(np.max(prediction))
-
-            if conf >= confidence_threshold:
-                word = gestures_words[np.argmax(prediction)]
-                if word != sess['word'] or now > sess['display_until']:
-                    sess['word'] = word
-                    sess['confidence'] = conf
-                    sess['display_until'] = now + 2.0
+        hand_frame_count = sum(np.any(frame != 0) for frame in sequence)
+        if len(sequence) == sequence_length and hand_frame_count >= 10:
+            socketio.start_background_task(
+                run_word_inference, session_id, request.sid, sequence
+            )
 
         if time.time() > sess['display_until']:
             sess['word'] = '...'
