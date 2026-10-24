@@ -632,9 +632,38 @@
     });
     hands.onResults((results) => {
       const hand = results.multiHandLandmarks?.[0];
-      socket.emit('process_landmarks_ws', {
+      fetch('/word_frame', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
         landmarks: hand ? hand.flatMap(point => [point.x, point.y, point.z]) : null,
         session_id: SESSION_ID
+        })
+      }).then(response => response.json()).then(data => {
+        document.getElementById('statusDot').classList.toggle('live', data.running);
+        document.getElementById('statusText').textContent = data.running ? 'LIVE' : 'STOPPED';
+        frameInFlight = false;
+        if (data.error) {
+          errEl.textContent = data.error;
+          errEl.style.display = 'block';
+        }
+        const wordEl = document.getElementById('predWord');
+        const word = data.word;
+        if (word) {
+          wordEl.textContent = word.replace('_', ' ').toUpperCase();
+          wordEl.classList.remove('idle');
+        } else if (data.sequence_progress < 75) {
+          wordEl.textContent = `collecting ${data.sequence_progress}/75`;
+          wordEl.classList.add('idle');
+        }
+        document.getElementById('confValue').textContent =
+          data.confidence > 0 ? data.confidence + '%' : '—';
+        document.getElementById('confFill').style.width =
+          data.confidence > 0 ? data.confidence + '%' : '0%';
+      }).catch(error => {
+        frameInFlight = false;
+        errEl.textContent = `Word frame failed: ${error.message}`;
+        errEl.style.display = 'block';
       });
     });
 

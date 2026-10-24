@@ -183,6 +183,51 @@ def http_set_mode():
         sess['sequence'] = []
     return jsonify({"status": "ok", "mode": mode})
 
+@app.route('/word_frame', methods=['POST'])
+def http_word_frame():
+    data = request.get_json(force=True, silent=True) or {}
+    session_id = data.get('session_id', 'default')
+    sess = get_session(session_id)
+    if not sess['running'] or sess['mode'] != 'words':
+        return jsonify({"running": False, "word": None, "confidence": 0})
+
+    values = data.get('landmarks')
+    landmarks = None if values is None else np.asarray(values, dtype=np.float32)
+    if landmarks is not None and landmarks.shape != (63,):
+        return jsonify({"running": True, "error": "Invalid hand landmark data.",
+                        "word": None, "confidence": 0}), 400
+
+    with sessions_lock:
+        sess['sequence'].append(
+            landmarks if landmarks is not None else np.zeros(63, dtype=np.float32)
+        )
+        sess['sequence'] = sess['sequence'][-sequence_length:]
+        sequence = list(sess['sequence'])
+
+    hand_progress = sum(np.any(frame != 0) for frame in sequence)
+    if len(sequence) == sequence_length and hand_progress >= 10:
+        try:
+            prediction = model_words(
+                np.expand_dims(sequence, axis=0), training=False
+            ).numpy()[0]
+            confidence = float(np.max(prediction))
+            if confidence >= 0.60:
+                sess['word'] = gestures_words[np.argmax(prediction)]
+                sess['confidence'] = confidence
+                sess['display_until'] = time.time() + 2.0
+        except (ValueError, RuntimeError) as error:
+            return jsonify({"running": True, "error": f"Words model inference failed: {error}",
+                            "word": None, "confidence": 0}), 500
+
+    word = sess['word'] if sess['word'] != '...' else None
+    return jsonify({
+        "running": True,
+        "word": word,
+        "confidence": round(sess['confidence'] * 100, 1),
+        "sequence_progress": int(len(sequence)),
+        "hand_progress": int(hand_progress)
+    })
+
 # ─── WebSocket Event for Real-Time Frame Processing ──────────────────────────
 @socketio.on('process_landmarks_ws')
 def handle_process_landmarks_ws(data):
