@@ -70,7 +70,7 @@ def get_session(session_id):
         return sessions[session_id]
 
 def extract_landmarks(frame_bgr):
-    small_frame = cv2.resize(frame_bgr, (320, 240))
+    small_frame = cv2.resize(frame_bgr, (160, 120))
     image_rgb = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
     with hands_lock:
         results = hands_processor.process(image_rgb)
@@ -158,7 +158,14 @@ def handle_process_frame_ws(data):
         emit('frame_result', {"running": sess['running'], "error": str(e), "word": None, "confidence": 0})
         return
 
-    landmarks, multi_hand_landmarks = extract_landmarks(frame)
+    try:
+        landmarks, _ = extract_landmarks(frame)
+    except (ValueError, RuntimeError) as error:
+        emit('frame_result', {
+            "running": True, "error": f"Hand detection failed: {error}",
+            "word": None, "confidence": 0
+        })
+        return
     mode = sess['mode']
     now = time.time()
 
@@ -221,25 +228,13 @@ def handle_process_frame_ws(data):
             sess['word'] = '...'
             sess['confidence'] = 0.0
 
-    # Draw landmarks on the frame if they exist
-    if multi_hand_landmarks:
-        for hand_landmarks in multi_hand_landmarks:
-            mp_drawing.draw_landmarks(
-                frame,
-                hand_landmarks,
-                mp_hands.HAND_CONNECTIONS)
-                
-    # Encode the frame with drawn landmarks to Base64 to send to frontend
-    _, buffer = cv2.imencode('.jpg', frame)
-    annotated_b64 = "data:image/jpeg;base64," + base64.b64encode(buffer).decode('utf-8')
-
     word_out = sess['word'] if sess['word'] != '...' else None
     
     emit('frame_result', {
         "running": True,
         "word": word_out,
         "confidence": round(sess['confidence'] * 100, 1),
-        "image": annotated_b64
+        "image": None
     })
 
 # ─── Run ─────────────────────────────────────────────────────────────────────
