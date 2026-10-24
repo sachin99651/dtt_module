@@ -694,7 +694,6 @@
       }
 
       video.srcObject = stream;
-      video.play().catch(e => console.error("Camera play error:", e)); // Force video to play
 
       document.getElementById('placeholder').style.display = 'none';
       document.getElementById('btnStart').disabled = true;
