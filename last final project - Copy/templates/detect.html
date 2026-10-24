@@ -489,6 +489,28 @@
       background: transparent
     }
 
+    .btn-switch {
+      width: 100%;
+      margin-top: 10px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: transparent;
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      cursor: pointer
+    }
+
+    .btn-switch:hover {
+      border-color: var(--accent);
+      color: var(--accent)
+    }
+
+    .btn-switch:disabled {
+      opacity: 0.3;
+      cursor: not-allowed
+    }
+
     .err-msg {
       font-family: 'Space Mono', monospace;
       font-size: 0.7rem;
@@ -577,6 +599,7 @@
           <button class="btn-start" id="btnStart" onclick="startCamera()">▶ START</button>
           <button class="btn-stop" id="btnStop" onclick="stopCamera()" disabled>■ STOP</button>
         </div>
+        <button class="btn-switch" id="btnSwitch" onclick="switchCamera()" disabled>↻ SWITCH CAMERA</button>
         <div class="err-msg" id="errMsg"></div>
       </div>
     </div>
@@ -588,6 +611,7 @@
     let stream = null;
     let sendLoop = null;
     let frameInFlight = false;
+    let cameraDeviceId = null;
     const video = document.getElementById('videoEl');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
@@ -701,10 +725,12 @@
       }
 
       video.srcObject = stream;
+      cameraDeviceId = stream.getVideoTracks()[0]?.getSettings().deviceId || null;
 
       document.getElementById('placeholder').style.display = 'none';
       document.getElementById('btnStart').disabled = true;
       document.getElementById('btnStop').disabled = false;
+      document.getElementById('btnSwitch').disabled = false;
 
       // Start session on backend
       const response = await fetch('/start', {
@@ -734,6 +760,7 @@
       document.getElementById('placeholder').style.display = 'flex';
       document.getElementById('btnStart').disabled = false;
       document.getElementById('btnStop').disabled = true;
+      document.getElementById('btnSwitch').disabled = true;
 
       document.getElementById('statusDot').classList.remove('live');
       document.getElementById('statusText').textContent = 'OFFLINE';
@@ -749,6 +776,32 @@
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session_id: SESSION_ID })
       }).catch(() => { });
+    }
+
+    async function switchCamera() {
+      if (!stream) return;
+      try {
+        const devices = (await navigator.mediaDevices.enumerateDevices())
+          .filter(device => device.kind === 'videoinput');
+        if (devices.length < 2) {
+          errEl.textContent = 'Only one camera is available on this device.';
+          errEl.style.display = 'block';
+          return;
+        }
+        const currentIndex = Math.max(0, devices.findIndex(device => device.deviceId === cameraDeviceId));
+        const nextDevice = devices[(currentIndex + 1) % devices.length];
+        stream.getTracks().forEach(track => track.stop());
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: { exact: nextDevice.deviceId }, width: { ideal: 480 }, height: { ideal: 360 } },
+          audio: false
+        });
+        cameraDeviceId = nextDevice.deviceId;
+        video.srcObject = stream;
+        errEl.style.display = 'none';
+      } catch (error) {
+        errEl.textContent = 'Unable to switch camera. Check browser camera permissions.';
+        errEl.style.display = 'block';
+      }
     }
 
     function sendFrame() {
