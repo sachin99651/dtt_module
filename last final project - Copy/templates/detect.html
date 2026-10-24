@@ -591,6 +591,12 @@
     const video = document.getElementById('videoEl');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
+    const socket = io({
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: Infinity
+    });
+    const errEl = document.getElementById('errMsg');
     const hands = new Hands({
       locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
     });
@@ -607,14 +613,6 @@
         session_id: SESSION_ID
       });
     });
-
-    // --- Initialize WebSocket ---
-    const socket = io({
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionAttempts: Infinity
-    });
-    const errEl = document.getElementById('errMsg');
 
     socket.on('connect', () => {
       errEl.style.display = 'none';
