@@ -147,25 +147,40 @@ def handle_process_frame_ws(data):
         emit('frame_result', {"running": False, "word": None, "confidence": 0})
         return
 
-    try:
-        header, encoded = frame_b64.split(',', 1) if ',' in frame_b64 else ('', frame_b64)
-        img_bytes = base64.b64decode(encoded)
-        nparr = np.frombuffer(img_bytes, np.uint8)
-        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        if frame is None:
-            raise ValueError("imdecode returned None")
-    except Exception as e:
-        emit('frame_result', {"running": sess['running'], "error": str(e), "word": None, "confidence": 0})
-        return
+    has_browser_landmarks = 'landmarks' in data
+    landmarks_data = data.get('landmarks')
+    frame = None
+    if has_browser_landmarks:
+        if landmarks_data is None:
+            landmarks = None
+        else:
+            landmarks = np.asarray(landmarks_data, dtype=np.float32)
+        if landmarks is not None and landmarks.shape != (63,):
+            emit('frame_result', {
+                "running": True, "error": "Invalid hand landmark data.",
+                "word": None, "confidence": 0
+            })
+            return
+    else:
+        try:
+            header, encoded = frame_b64.split(',', 1) if ',' in frame_b64 else ('', frame_b64)
+            img_bytes = base64.b64decode(encoded)
+            nparr = np.frombuffer(img_bytes, np.uint8)
+            frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            if frame is None:
+                raise ValueError("imdecode returned None")
+        except Exception as error:
+            emit('frame_result', {"running": sess['running'], "error": str(error), "word": None, "confidence": 0})
+            return
 
-    try:
-        landmarks, _ = extract_landmarks(frame)
-    except (ValueError, RuntimeError) as error:
-        emit('frame_result', {
-            "running": True, "error": f"Hand detection failed: {error}",
-            "word": None, "confidence": 0
-        })
-        return
+        try:
+            landmarks, _ = extract_landmarks(frame)
+        except (ValueError, RuntimeError) as error:
+            emit('frame_result', {
+                "running": True, "error": f"Hand detection failed: {error}",
+                "word": None, "confidence": 0
+            })
+            return
     mode = sess['mode']
     now = time.time()
 

@@ -9,6 +9,7 @@
     href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800;900&display=swap"
     rel="stylesheet" />
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
   <style>
     :root {
       --bg: #080c10;
@@ -590,6 +591,22 @@
     const video = document.getElementById('videoEl');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
+    const hands = new Hands({
+      locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    });
+    hands.setOptions({
+      maxNumHands: 1,
+      modelComplexity: 0,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+    hands.onResults((results) => {
+      const hand = results.multiHandLandmarks?.[0];
+      socket.emit('process_frame_ws', {
+        landmarks: hand ? hand.flatMap(point => [point.x, point.y, point.z]) : null,
+        session_id: SESSION_ID
+      });
+    });
 
     // --- Initialize WebSocket ---
     const socket = io({
@@ -749,7 +766,11 @@
       const b64 = canvas.toDataURL('image/jpeg', 0.4);
 
       // Emit over WebSocket instead of HTTP POST
-      socket.emit('process_frame_ws', { frame: b64, session_id: SESSION_ID });
+      hands.send({ image: canvas }).catch((error) => {
+        frameInFlight = false;
+        errEl.textContent = `Browser hand detection failed: ${error.message}`;
+        errEl.style.display = 'block';
+      });
       window.setTimeout(() => { frameInFlight = false; }, 10000);
     }
   </script>
