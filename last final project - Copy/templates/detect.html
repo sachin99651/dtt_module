@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>REAL_TIME SIGN TRANSLATE — Words</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800;900&display=swap"
+    rel="stylesheet" />
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    :root {
+      --bg: #080c10;
+      --surface: #0e1318;
+      --border: #1e2a35;
+      --accent: #00ffe0;
+      --accent2: #ff4f6d;
+      --accent3: #ffe066;
+      --text: #e8f0f5;
+      --muted: #4a6070;
+      --card: #111820
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: linear-gradient(rgba(0, 255, 224, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 224, 0.03) 1px, transparent 1px);
+      background-size: 44px 44px;
+      pointer-events: none;
+      z-index: 0
+    }
+
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 48px;
+      background: rgba(8, 12, 16, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border)
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none
+    }
+
+    .nav-logo-icon {
+      width: 34px;
+      height: 34px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      font-size: 16px
+    }
+
+    .nav-logo h1 {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--text)
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      list-style: none
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: color 0.2s
+    }
+
+    .nav-links a:hover {
+      color: var(--accent)
+    }
+
+    .nav-cta {
+      padding: 8px 20px;
+      background: var(--accent);
+      color: var(--bg) !important;
+      border-radius: 8px;
+      font-weight: 700 !important
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: 0.3
+      }
+    }
+
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 96px 20px 40px
+    }
+
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      gap: 16px;
+      animation: fadeUp 0.5s ease both
+    }
+
+    .breadcrumb {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 8px
+    }
+
+    .breadcrumb a {
+      color: var(--accent);
+      text-decoration: none
+    }
+
+    .page-title {
+      font-size: 1.8rem;
+      font-weight: 900;
+      letter-spacing: -1px
+    }
+
+    .page-title span {
+      color: var(--accent)
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 6px 14px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--muted)
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: background 0.3s
+    }
+
+    .status-dot.live {
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      animation: pulse 1.5s infinite
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 20px;
+      animation: fadeUp 0.5s 0.1s ease both
+    }
+
+    @media(max-width:900px) {
+      .grid {
+        grid-template-columns: 1fr
+      }
+
+      nav {
+        padding: 14px 16px
+      }
+    }
+
+    .video-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden
+    }
+
+    .video-header {
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border)
+    }
+
+    .video-header-label {
+      font-size: 0.7rem;
+      font-family: 'Space Mono', monospace;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase
+    }
+
+    .rec-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--accent2)
+    }
+
+    .rec-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent2);
+      animation: pulse 1s infinite
+    }
+
+    .video-wrapper {
+      position: relative;
+      aspect-ratio: 4/3;
+      background: #000;
+      overflow: hidden
+    }
+
+    #videoEl {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transform: scaleX(-1)
+    }
+
+    #canvas {
+      display: none
+    }
+
+    .video-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 0.85rem
+    }
+
+    .video-placeholder .icon {
+      font-size: 3rem;
+      opacity: 0.3
+    }
+
+    .video-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 20px;
+      background: linear-gradient(transparent, rgba(8, 12, 16, 0.92));
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between
+    }
+
+    .pred-word {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--accent);
+      text-shadow: 0 0 30px rgba(0, 255, 224, 0.5);
+      letter-spacing: -1px;
+      transition: all 0.3s ease;
+      min-height: 3rem
+    }
+
+    .pred-word.idle {
+      color: var(--muted);
+      font-size: 1.2rem;
+      font-weight: 400
+    }
+
+    .conf-bar-wrap {
+      text-align: right
+    }
+
+    .conf-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+      margin-bottom: 4px
+    }
+
+    .conf-value {
+      font-family: 'Space Mono', monospace;
+      font-size: 1.4rem;
+      color: var(--text)
+    }
+
+    .conf-bar {
+      width: 100px;
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      margin-top: 4px;
+      overflow: hidden
+    }
+
+    .conf-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+      transition: width 0.4s ease;
+      width: 0%
+    }
+
+    .side-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px
+    }
+
+    .card-title {
+      font-size: 0.65rem;
+      font-family: 'Space Mono', monospace;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 14px
+    }
+
+    .mode-switch {
+      display: flex;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+      gap: 4px
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      border-radius: 7px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: transparent;
+      color: var(--muted)
+    }
+
+    .mode-btn.active {
+      background: var(--card);
+      color: var(--accent);
+      border: 1px solid var(--border)
+    }
+
+    .gestures-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px
+    }
+
+    .gesture-chip {
+      padding: 6px 12px;
+      border-radius: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      font-size: 0.78rem;
+      font-family: 'Space Mono', monospace;
+      color: var(--muted);
+      transition: all 0.25s
+    }
+
+    .gesture-chip.active {
+      background: rgba(0, 255, 224, 0.08);
+      border-color: var(--accent);
+      color: var(--accent);
+      box-shadow: 0 0 12px rgba(0, 255, 224, 0.15)
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px
+    }
+
+    .btn-start,
+    .btn-stop {
+      flex: 1;
+      padding: 12px;
+      background: transparent;
+      border-radius: 10px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8rem;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.2s
+    }
+
+    .btn-start {
+      border: 1px solid var(--accent);
+      color: var(--accent)
+    }
+
+    .btn-start:hover {
+      background: rgba(0, 255, 224, 0.08);
+      box-shadow: 0 0 16px rgba(0, 255, 224, 0.2)
+    }
+
+    .btn-start:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      background: transparent;
+      box-shadow: none
+    }
+
+    .btn-stop {
+      border: 1px solid var(--accent2);
+      color: var(--accent2)
+    }
+
+    .btn-stop:hover {
+      background: rgba(255, 79, 109, 0.08)
+    }
+
+    .btn-stop:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      background: transparent
+    }
+
+    .err-msg {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--accent2);
+      margin-top: 8px;
+      display: none
+    }
+  </style>
+</head>
+
+<body>
+  <nav>
+    <a class="nav-logo" href="/">
+      <div class="nav-logo-icon">🤟</div>
+      <h1>REAL_TIME SIGN TRANSLATE</h1>
+    </a>
+    <ul class="nav-links">
+      <li><a href="/">Home</a></li>
+      <li><a href="/types">Sign Types</a></li>
+      <li><a href="/alphabets" class="nav-cta">Alphabets Mode</a></li>
+    </ul>
+  </nav>
+
+  <div class="wrapper">
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb"><a href="/">Home</a> / <a href="/category">Categories</a> / Words</div>
+        <h1 class="page-title">Words <span>Detection</span></h1>
+      </div>
+      <div class="status-pill">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">OFFLINE</span>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="video-panel">
+        <div class="video-header">
+          <span class="video-header-label">Live Camera Feed · ASL Words</span>
+          <div class="rec-badge">
+            <div class="rec-dot"></div> REC
+          </div>
+        </div>
+        <div class="video-wrapper">
+          <div class="video-placeholder" id="placeholder">
+            <div class="icon">📷</div>
+            <span>Press START to begin</span>
+          </div>
+          <video id="videoEl" autoplay playsinline muted
+            style="position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none;"></video>
+          <canvas id="canvas" style="display:none"></canvas>
+          <img id="annotatedImage"
+            style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: none;" />
+          <div class="video-overlay">
+            <div class="pred-word idle" id="predWord">waiting...</div>
+            <div class="conf-bar-wrap">
+              <div class="conf-label">CONFIDENCE</div>
+              <div class="conf-value" id="confValue">—</div>
+              <div class="conf-bar">
+                <div class="conf-fill" id="confFill"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="side-panel">
+        <div class="card">
+          <div class="card-title">Detection Mode</div>
+          <div class="mode-switch">
+            <button class="mode-btn active">Words</button>
+            <button class="mode-btn" onclick="switchTo('/alphabets','alphabet')">Alphabets</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Detectable Gestures</div>
+          <div class="gestures-grid" id="gesturesGrid">
+            <div class="gesture-chip" data-word="hello">hello</div>
+            <div class="gesture-chip" data-word="thank_you">thank you</div>
+            <div class="gesture-chip" data-word="yes">yes</div>
+            <div class="gesture-chip" data-word="no">no</div>
+            <div class="gesture-chip" data-word="goodbye">goodbye</div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn-start" id="btnStart" onclick="startCamera()">▶ START</button>
+          <button class="btn-stop" id="btnStop" onclick="stopCamera()" disabled>■ STOP</button>
+        </div>
+        <div class="err-msg" id="errMsg"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Unique session ID per browser tab
+    const SESSION_ID = 'sess_' + Math.random().toString(36).slice(2);
+    let stream = null;
+    let sendLoop = null;
+    let frameInFlight = false;
+    const video = document.getElementById('videoEl');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // --- Initialize WebSocket ---
+    const socket = io();
+
+    // --- Handle Incoming WebSocket Results ---
+    socket.on('frame_result', (data) => {
+      document.getElementById('statusDot').classList.toggle('live', data.running);
+      document.getElementById('statusText').textContent = data.running ? 'LIVE' : 'STOPPED';
+
+      // Show the image with drawn landmarks when it arrives
+      if (data.image) {
+        const imgEl = document.getElementById('annotatedImage');
+        imgEl.src = data.image;
+        imgEl.style.display = 'block';
+      }
+      frameInFlight = false;
+
+      const wordEl = document.getElementById('predWord');
+      const word = data.word;
+
+      if (word && word !== '...') {
+        wordEl.textContent = word.replace('_', ' ').toUpperCase();
+        wordEl.classList.remove('idle');
+      } else {
+        wordEl.textContent = 'waiting...';
+        wordEl.classList.add('idle');
+      }
+
+      const conf = data.confidence;
+      document.getElementById('confValue').textContent = conf > 0 ? conf + '%' : '—';
+      document.getElementById('confFill').style.width = conf > 0 ? conf + '%' : '0%';
+
+      // Toggle active state for gesture chips
+      document.querySelectorAll('.gesture-chip').forEach(c =>
+        c.classList.toggle('active', c.dataset.word === word)
+      );
+    });
+
+    async function switchTo(page, mode) {
+      await fetch('/set_mode', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode, session_id: SESSION_ID })
+      }).catch(() => { });
+      window.location = page;
+    }
+
+    async function startCamera() {
+      const errEl = document.getElementById('errMsg');
+      errEl.style.display = 'none';
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 360 }, latency: { ideal: 0 } },
+          audio: false
+        });
+      } catch (e) {
+        errEl.textContent = 'Camera access denied. Allow camera in browser settings.';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      video.srcObject = stream;
+      video.play().catch(e => console.error("Camera play error:", e)); // Force video to play
+
+      document.getElementById('placeholder').style.display = 'none';
+      document.getElementById('btnStart').disabled = true;
+      document.getElementById('btnStop').disabled = false;
+
+      // Start session on backend
+      await fetch('/start', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'words', session_id: SESSION_ID })
+      });
+
+      // Keep only one request in flight so slow inference cannot build a stale queue.
+      frameInFlight = false;
+      sendLoop = setInterval(sendFrame, 30);
+    }
+
+    async function stopCamera() {
+      clearInterval(sendLoop);
+      sendLoop = null;
+      frameInFlight = false;
+      if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+      video.srcObject = null;
+      document.getElementById('annotatedImage').style.display = 'none';
+      document.getElementById('annotatedImage').src = '';
+      document.getElementById('placeholder').style.display = 'flex';
+      document.getElementById('btnStart').disabled = false;
+      document.getElementById('btnStop').disabled = true;
+
+      document.getElementById('statusDot').classList.remove('live');
+      document.getElementById('statusText').textContent = 'OFFLINE';
+      document.getElementById('predWord').textContent = 'waiting...';
+      document.getElementById('predWord').classList.add('idle');
+      document.getElementById('confValue').textContent = '—';
+      document.getElementById('confFill').style.width = '0%';
+
+      // Reset active chips
+      document.querySelectorAll('.gesture-chip').forEach(c => c.classList.remove('active'));
+
+      await fetch('/stop', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: SESSION_ID })
+      }).catch(() => { });
+    }
+
+    function sendFrame() {
+      if (!stream || video.readyState < 2 || frameInFlight || !socket.connected) return;
+      frameInFlight = true;
+      canvas.width = 320;
+      canvas.height = 240;
+
+      // Draw mirrored so hand orientation matches training data
+      ctx.save(); ctx.scale(-1, 1); ctx.drawImage(video, -canvas.width, 0); ctx.restore();
+
+      // Convert canvas to Base64 (JPEG quality 0.5 for speed)
+      const b64 = canvas.toDataURL('image/jpeg', 0.4);
+
+      // Emit over WebSocket instead of HTTP POST
+      socket.emit('process_frame_ws', { frame: b64, session_id: SESSION_ID });
+    }
+  </script>
+</body>
+
+</html>

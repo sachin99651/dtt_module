@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Real-Time Sign Language Translator</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800;900&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:#080c10;--surface:#0e1318;--border:#1e2a35;
+    --accent:#00ffe0;--accent2:#ff4f6d;--accent3:#ffe066;
+    --text:#e8f0f5;--muted:#4a6070;--card:#111820;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;overflow-x:hidden}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,255,224,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,224,0.03) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0}
+  nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:16px 48px;background:rgba(8,12,16,0.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+  .nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+  .nav-logo-icon{width:34px;height:34px;background:var(--accent);border-radius:8px;display:grid;place-items:center;font-size:16px}
+  .nav-logo h1{font-size:1.2rem;font-weight:800;color:var(--text);letter-spacing:-0.3px}
+  .nav-links{display:flex;align-items:center;gap:32px;list-style:none}
+  .nav-links a{text-decoration:none;font-family:'Space Mono',monospace;font-size:0.72rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;transition:color 0.2s}
+  .nav-links a:hover{color:var(--accent)}
+  .nav-cta{padding:8px 20px;background:var(--accent);color:var(--bg)!important;border-radius:8px;font-weight:700!important}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  .hero{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 24px 80px}
+  .hero-tag{display:inline-flex;align-items:center;gap:8px;background:rgba(0,255,224,0.06);border:1px solid rgba(0,255,224,0.2);border-radius:100px;padding:6px 16px;font-family:'Space Mono',monospace;font-size:0.68rem;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:32px;animation:fadeUp 0.6s ease both}
+  .hero-tag-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.5s infinite}
+  .hero-title{font-size:clamp(2.8rem,7vw,6rem);font-weight:900;line-height:1.0;letter-spacing:-2px;max-width:900px;animation:fadeUp 0.6s 0.1s ease both}
+  .hero-title .line2{color:var(--accent)}
+  .hero-sub{margin-top:24px;font-size:1.05rem;color:var(--muted);max-width:520px;line-height:1.7;font-weight:400;animation:fadeUp 0.6s 0.2s ease both}
+  .hero-actions{margin-top:44px;display:flex;gap:14px;flex-wrap:wrap;justify-content:center;animation:fadeUp 0.6s 0.3s ease both}
+  .btn-primary{padding:14px 32px;background:var(--accent);color:var(--bg);border:none;border-radius:10px;font-family:'Space Mono',monospace;font-size:0.8rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;text-decoration:none;transition:all 0.2s}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,255,224,0.3)}
+  .btn-secondary{padding:14px 32px;background:transparent;color:var(--text);border:1px solid var(--border);border-radius:10px;font-family:'Space Mono',monospace;font-size:0.8rem;letter-spacing:1px;text-transform:uppercase;cursor:pointer;text-decoration:none;transition:all 0.2s}
+  .btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+  .hero-visual{margin-top:64px;position:relative;animation:fadeUp 0.6s 0.4s ease both}
+  .hero-visual-inner{width:320px;height:200px;margin:0 auto;background:var(--card);border:1px solid var(--border);border-radius:20px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+  .hero-visual-inner::before{content:'';position:absolute;inset:-1px;border-radius:20px;background:linear-gradient(135deg,rgba(0,255,224,0.15),transparent 60%);pointer-events:none}
+  .scan-line{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);animation:scan 2.5s ease-in-out infinite;opacity:0.6}
+  @keyframes scan{0%{top:10%;opacity:0}10%{opacity:0.6}90%{opacity:0.6}100%{top:90%;opacity:0}}
+  .hero-emoji{font-size:5rem;z-index:1}
+  .hero-visual-label{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--accent);letter-spacing:3px;text-transform:uppercase;white-space:nowrap}
+  .stats-bar{position:relative;z-index:1;display:flex;justify-content:center;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--surface);overflow-x:auto}
+  .stat-item{flex:1;min-width:140px;padding:28px 24px;text-align:center;border-right:1px solid var(--border)}
+  .stat-item:last-child{border-right:none}
+  .stat-num{font-size:2rem;font-weight:900;color:var(--accent);letter-spacing:-1px}
+  .stat-label{font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:4px}
+  .section{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:80px 24px}
+  .section-label{font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--accent);letter-spacing:3px;text-transform:uppercase;margin-bottom:12px}
+  .section-title{font-size:2.2rem;font-weight:800;letter-spacing:-1px;margin-bottom:48px}
+  .features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+  .feature-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;transition:all 0.25s;position:relative;overflow:hidden}
+  .feature-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),transparent);opacity:0;transition:opacity 0.25s}
+  .feature-card:hover{border-color:rgba(0,255,224,0.3);transform:translateY(-4px)}
+  .feature-card:hover::before{opacity:1}
+  .feature-icon{width:44px;height:44px;background:rgba(0,255,224,0.08);border:1px solid rgba(0,255,224,0.15);border-radius:10px;display:grid;place-items:center;font-size:20px;margin-bottom:18px}
+  .feature-title{font-size:1rem;font-weight:700;margin-bottom:8px}
+  .feature-desc{font-size:0.85rem;color:var(--muted);line-height:1.6}
+  .steps{display:flex;flex-direction:column;gap:0;position:relative}
+  .steps::before{content:'';position:absolute;left:22px;top:0;bottom:0;width:1px;background:var(--border)}
+  .step{display:flex;gap:24px;align-items:flex-start;padding:28px 0;border-bottom:1px solid var(--border)}
+  .step:last-child{border-bottom:none}
+  .step-num{width:44px;height:44px;flex-shrink:0;background:var(--card);border:1px solid var(--border);border-radius:50%;display:grid;place-items:center;font-family:'Space Mono',monospace;font-size:0.8rem;color:var(--accent);position:relative;z-index:1}
+  .step-content h3{font-size:1rem;font-weight:700;margin-bottom:6px}
+  .step-content p{font-size:0.85rem;color:var(--muted);line-height:1.6}
+  @media(max-width:768px){nav{padding:14px 16px}.nav-links{gap:16px}}
+</style>
+</head>
+<body>
+<nav>
+  <a class="nav-logo" href="/">
+    <div class="nav-logo-icon">🤟</div>
+    <h1>REAL_TIME SIGN TRANSLATE</h1>
+  </a>
+  <ul class="nav-links">
+    <li><a href="/">Home</a></li>
+    <li><a href="/types">Sign Types</a></li>
+    <li><a href="/category" class="nav-cta">Launch App</a></li>
+  </ul>
+</nav>
+
+<section class="hero">
+  <div class="hero-tag"><div class="hero-tag-dot"></div>AI-Powered · Real-Time · Any Device</div>
+  <h1 class="hero-title">Real-Time Sign<br><span class="line2">Language Translator</span></h1>
+  <p class="hero-sub">Bridge communication gaps instantly. Works on phones, tablets, and desktops — just open the page and start signing.</p>
+  <div class="hero-actions">
+    <a href="/category" class="btn-primary">Get Started →</a>
+    <a href="/types" class="btn-secondary">Learn More</a>
+  </div>
+  <div class="hero-visual">
+    <div class="hero-visual-inner">
+      <div class="scan-line"></div>
+      <div class="hero-emoji">🤟</div>
+      <span class="hero-visual-label">Scanning gesture...</span>
+    </div>
+  </div>
+</section>
+
+<div class="stats-bar">
+  <div class="stat-item"><div class="stat-num">99%</div><div class="stat-label">Detection Accuracy</div></div>
+  <div class="stat-item"><div class="stat-num">&lt;50ms</div><div class="stat-label">Response Time</div></div>
+  <div class="stat-item"><div class="stat-num">31+</div><div class="stat-label">Gestures Supported</div></div>
+  <div class="stat-item"><div class="stat-num">Any</div><div class="stat-label">Device / OS</div></div>
+</div>
+
+<section class="section">
+  <div class="section-label">Why SignLens</div>
+  <h2 class="section-title">Built for real communication</h2>
+  <div class="features-grid">
+    <div class="feature-card"><div class="feature-icon">🧠</div><div class="feature-title">CNN Deep Learning</div><div class="feature-desc">Trained on thousands of gesture samples using a multi-layer convolutional neural network for high accuracy recognition.</div></div>
+    <div class="feature-card"><div class="feature-icon">📱</div><div class="feature-title">Any Device</div><div class="feature-desc">Works on phones, tablets and desktops. Your browser's camera streams to the server — no app install needed.</div></div>
+    <div class="feature-card"><div class="feature-icon">🎯</div><div class="feature-title">Confidence Scoring</div><div class="feature-desc">Every prediction comes with a live confidence bar — only high-certainty gestures are displayed to reduce noise.</div></div>
+    <div class="feature-card"><div class="feature-icon">🔤</div><div class="feature-title">Words & Alphabets</div><div class="feature-desc">Detect full words like "hello" and "goodbye" or individual ASL alphabet letters — switch modes anytime.</div></div>
+    <div class="feature-card"><div class="feature-icon">⚡</div><div class="feature-title">Real-Time Processing</div><div class="feature-desc">MediaPipe hand landmark detection runs server-side, feeding the model live keypoints for instant predictions.</div></div>
+    <div class="feature-card"><div class="feature-icon">🛡️</div><div class="feature-title">Privacy First</div><div class="feature-desc">All ML processing happens on your own server. Frames are sent over your local network only.</div></div>
+  </div>
+</section>
+
+<section class="section" style="padding-top:0">
+  <div class="section-label">Process</div>
+  <h2 class="section-title">How it works</h2>
+  <div class="steps">
+    <div class="step"><div class="step-num">01</div><div class="step-content"><h3>Browser Camera</h3><p>Your device camera is accessed via the browser — works on any phone, tablet or desktop.</p></div></div>
+    <div class="step"><div class="step-num">02</div><div class="step-content"><h3>Frame Upload</h3><p>Frames are captured on-device and sent to the server 10× per second as compressed JPEG.</p></div></div>
+    <div class="step"><div class="step-num">03</div><div class="step-content"><h3>Hand Landmark Detection</h3><p>Google MediaPipe extracts 21 3D hand landmarks per frame — fingertips, knuckles, and wrist positions.</p></div></div>
+    <div class="step"><div class="step-num">04</div><div class="step-content"><h3>CNN Inference</h3><p>75 consecutive frames are stacked and classified by the trained Conv1D model with a confidence score.</p></div></div>
+    <div class="step"><div class="step-num">05</div><div class="step-content"><h3>Result Display</h3><p>High-confidence predictions are shown on-screen in real time and cleared after 3 seconds.</p></div></div>
+  </div>
+</section>
+</body>
+</html>

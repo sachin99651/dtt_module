@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SignLens — Types of Sign Language</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800;900&display=swap"
+    rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #080c10;
+      --surface: #0e1318;
+      --border: #1e2a35;
+      --accent: #00ffe0;
+      --accent2: #ff4f6d;
+      --accent3: #ffe066;
+      --text: #e8f0f5;
+      --muted: #4a6070;
+      --card: #111820;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0, 255, 224, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 224, 0.03) 1px, transparent 1px);
+      background-size: 44px 44px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 48px;
+      background: rgba(8, 12, 16, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .nav-logo-icon {
+      width: 34px;
+      height: 34px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+    }
+
+    .nav-logo h1 {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .nav-logo h1 span {
+      color: var(--accent);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover,
+    .nav-links a.active {
+      color: var(--accent);
+    }
+
+    .nav-cta {
+      padding: 8px 20px;
+      background: var(--accent);
+      color: var(--bg) !important;
+      border-radius: 8px;
+      font-weight: 700 !important;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: 0.3
+      }
+    }
+
+    .page-hero {
+      position: relative;
+      z-index: 1;
+      padding: 140px 48px 60px;
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+
+    .page-hero-left {
+      animation: fadeUp 0.5s ease both;
+    }
+
+    .breadcrumb {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .breadcrumb a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .page-title {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 900;
+      letter-spacing: -2px;
+      line-height: 1.05;
+    }
+
+    .page-title span {
+      color: var(--accent);
+    }
+
+    .page-sub {
+      margin-top: 16px;
+      font-size: 0.95rem;
+      color: var(--muted);
+      max-width: 480px;
+      line-height: 1.7;
+    }
+
+    .page-hero-right {
+      animation: fadeUp 0.5s 0.1s ease both;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      white-space: nowrap;
+    }
+
+    .page-hero-right span {
+      color: var(--accent);
+      display: block;
+      font-size: 1.5rem;
+      font-weight: 700;
+      font-family: 'Syne', sans-serif;
+      margin-bottom: 2px;
+    }
+
+    /* CONTENT */
+    .content {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 48px 80px;
+    }
+
+    /* Featured large card */
+    .featured-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: center;
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+      animation: fadeUp 0.5s 0.2s ease both;
+    }
+
+    .featured-card::after {
+      content: '';
+      position: absolute;
+      top: -40px;
+      right: -40px;
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0, 255, 224, 0.06), transparent 70%);
+    }
+
+    .featured-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0, 255, 224, 0.1);
+      border: 1px solid rgba(0, 255, 224, 0.25);
+      border-radius: 100px;
+      padding: 4px 12px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      color: var(--accent);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .featured-badge-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 1.5s infinite;
+    }
+
+    .featured-title {
+      font-size: 1.9rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 12px;
+    }
+
+    .featured-desc {
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-bottom: 20px;
+    }
+
+    .featured-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .tag {
+      padding: 5px 12px;
+      border-radius: 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--muted);
+    }
+
+    .tag.active {
+      background: rgba(0, 255, 224, 0.06);
+      border-color: rgba(0, 255, 224, 0.3);
+      color: var(--accent);
+    }
+
+    .featured-visual {
+      aspect-ratio: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .featured-visual-label {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      color: var(--muted);
+      letter-spacing: 2px;
+      white-space: nowrap;
+    }
+
+    /* Grid of type cards */
+    .types-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+    }
+
+    .type-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      transition: all 0.25s;
+      cursor: default;
+      animation: fadeUp 0.5s ease both;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .type-card:hover {
+      border-color: rgba(0, 255, 224, 0.25);
+      transform: translateY(-3px);
+    }
+
+    .type-card:hover .type-arrow {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .type-flag {
+      font-size: 2.5rem;
+      margin-bottom: 16px;
+      display: block;
+    }
+
+    .type-name {
+      font-size: 1.15rem;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .type-abbr {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--accent);
+      letter-spacing: 2px;
+      margin-bottom: 12px;
+    }
+
+    .type-desc {
+      font-size: 0.83rem;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .type-meta {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .meta-chip {
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.62rem;
+      color: var(--muted);
+    }
+
+    .type-arrow {
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      font-size: 1.2rem;
+      opacity: 0;
+      transform: translateX(-6px);
+      transition: all 0.2s;
+      color: var(--accent);
+    }
+
+    .supported-badge {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: rgba(0, 255, 224, 0.08);
+      border: 1px solid rgba(0, 255, 224, 0.2);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      color: var(--accent);
+    }
+
+    .section-divider {
+      margin: 40px 0 28px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .section-divider-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .section-divider-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    @media(max-width:700px) {
+      .featured-card {
+        grid-template-columns: 1fr;
+      }
+
+      nav {
+        padding: 14px 20px;
+      }
+
+      .page-hero,
+      .content {
+        padding-left: 20px;
+        padding-right: 20px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <nav>
+    <a class="nav-logo" href="/">
+      <div class="nav-logo-icon">🤟</div>
+      <h1>REAL_TIME SIGN TRANSLATE</h1>
+    </a>
+    <ul class="nav-links">
+      <li><a href="/">Home</a></li>
+      <li><a href="/types" class="active">Sign Types</a></li>
+
+      <li><a href="/category" class="nav-cta">Launch App</a></li>
+    </ul>
+  </nav>
+
+  <div class="page-hero">
+    <div class="page-hero-left">
+      <div class="breadcrumb"><a href="/index.html">Home</a> / Sign Types</div>
+      <h1 class="page-title">Types of<br><span>Sign Language</span></h1>
+      <p class="page-sub">Sign languages are full, natural languages with their own grammar and vocabulary — not simply
+        coded versions of spoken languages.</p>
+    </div>
+    <div class="page-hero-right">
+      <span>300+</span>
+      Unique sign languages<br>used worldwide today
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- Featured: ASL -->
+    <div class="featured-card">
+      <div>
+        <div class="featured-badge">
+          <div class="featured-badge-dot"></div> Supported by SignLens
+        </div>
+        <h2 class="featured-title">American Sign Language (ASL)</h2>
+        <p class="featured-desc">The primary sign language used by the Deaf community in the United States and parts of
+          Canada. ASL has its own grammar that is distinct from English — sentences follow a topic-comment structure. It
+          uses handshapes, movement, and facial expressions to convey meaning.</p>
+        <div class="featured-tags">
+          <span class="tag active">Alphabets A–Z</span>
+          <span class="tag active">Common Words</span>
+          <span class="tag">Numbers</span>
+          <span class="tag">Phrases</span>
+        </div>
+      </div>
+      <div class="featured-visual">
+        🤟
+        <div class="featured-visual-label">ASL · I LOVE YOU</div>
+      </div>
+    </div>
+
+    <div class="section-divider">
+      <span class="section-divider-label">Other Sign Languages</span>
+      <div class="section-divider-line"></div>
+    </div>
+
+    <div class="types-grid">
+
+      <div class="type-card" style="animation-delay:0.05s">
+        <span class="type-flag">🇬🇧</span>
+        <div class="type-name">British Sign Language</div>
+        <div class="type-abbr">BSL</div>
+        <p class="type-desc">Used in the UK, BSL is a completely different language from ASL despite both being used in
+          English-speaking countries. It uses a two-handed fingerspelling alphabet.</p>
+        <div class="type-meta">
+          <span class="meta-chip">Two-handed</span>
+          <span class="meta-chip">~150k users</span>
+          <span class="meta-chip">UK</span>
+        </div>
+        <div class="type-arrow">→</div>
+      </div>
+
+      <div class="type-card" style="animation-delay:0.1s">
+        <span class="type-flag">🇮🇳</span>
+        <div class="type-name">Indian Sign Language</div>
+        <div class="type-abbr">ISL</div>
+        <p class="type-desc">Used across India with regional variations. ISL has similarities to BSL and is recognized
+          as one of the official languages for the Deaf community in India.</p>
+        <div class="type-meta">
+          <span class="meta-chip">Regional variants</span>
+          <span class="meta-chip">~2.7M users</span>
+          <span class="meta-chip">India</span>
+        </div>
+        <div class="type-arrow">→</div>
+      </div>
+
+      <div class="type-card" style="animation-delay:0.15s">
+        <span class="type-flag">🇫🇷</span>
+        <div class="type-name">French Sign Language</div>
+        <div class="type-abbr">LSF</div>
+        <p class="type-desc">LSF is historically significant — ASL was heavily influenced by it when Thomas Gallaudet
+          brought Laurent Clerc to America in the 1800s.</p>
+        <div class="type-meta">
+          <span class="meta-chip">ASL ancestor</span>
+          <span class="meta-chip">~100k users</span>
+          <span class="meta-chip">France</span>
+        </div>
+        <div class="type-arrow">→</div>
+      </div>
+
+      <div class="type-card" style="animation-delay:0.2s">
+        <span class="type-flag">🌍</span>
+        <div class="type-name">International Sign</div>
+        <div class="type-abbr">IS</div>
+        <p class="type-desc">A pidgin sign language used at international events. It borrows from multiple sign
+          languages and relies heavily on gesture and mime for cross-cultural communication.</p>
+        <div class="type-meta">
+          <span class="meta-chip">Pidgin</span>
+          <span class="meta-chip">International</span>
+          <span class="meta-chip">Events/Conferences</span>
+        </div>
+        <div class="type-arrow">→</div>
+      </div>
+
+      <div class="type-card" style="animation-delay:0.25s">
+        <span class="type-flag">🇯🇵</span>
+        <div class="type-name">Japanese Sign Language</div>
+        <div class="type-abbr">JSL / NSL</div>
+        <p class="type-desc">Used by Japan's Deaf community, JSL has a unique grammar system and shares little overlap
+          with spoken Japanese or with ASL/BSL families.</p>
+        <div class="type-meta">
+          <span class="meta-chip">Unique grammar</span>
+          <span class="meta-chip">~320k users</span>
+          <span class="meta-chip">Japan</span>
+        </div>
+        <div class="type-arrow">→</div>
+      </div>
+
+      <div class="type-card" style="animation-delay:0.3s">
+        <span class="type-flag">🇦🇺</span>
+        <div class="type-name">Auslan</div>
+        <div class="type-abbr">AUSLAN</div>
+        <p class="type-desc">Australian Sign Language shares roots with BSL and New Zealand Sign Language. It uses a
+          two-handed fingerspelling system and is the primary language of the Australian Deaf community.</p>
+        <div class="type-meta">
+          <span class="meta-chip">BSL-derived</span>
+          <span class="meta-chip">~16k users</span>
+          <span class="meta-chip">Australia</span>
+        </div>
+        <div class="type-arrow">→</div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+
+</html>
