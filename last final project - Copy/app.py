@@ -13,7 +13,7 @@ import os
 # Initialize Flask and SocketIO
 app = Flask(__name__, template_folder='.')
 CORS(app)
-socketio = SocketIO(app, cors_allowed_origins="*") 
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
 # ─── Load Models ────────────────────────────────────────────────────────────
 print("Loading models...")
