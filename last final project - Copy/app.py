@@ -33,6 +33,16 @@ gestures_alpha = np.array([
 
 print("Both models loaded.")
 
+@app.route('/health')
+def health():
+    return jsonify({
+        "status": "ok",
+        "models": {
+            "alphabet": list(model_alpha.input_shape[1:]),
+            "words": list(model_words.input_shape[1:]),
+        }
+    })
+
 # ─── MediaPipe Setup ─────────────────────────────────────────────────────────
 sequence_length = 75 
 mp_hands = mp.solutions.hands
@@ -157,7 +167,14 @@ def handle_process_frame_ws(data):
         confidence_threshold = 0.60
         if landmarks is not None:
             input_data = np.expand_dims(landmarks, axis=0) 
-            prediction = model_alpha(input_data, training=False).numpy()[0]
+            try:
+                prediction = model_alpha(input_data, training=False).numpy()[0]
+            except (ValueError, RuntimeError) as error:
+                emit('frame_result', {
+                    "running": True, "error": f"Alphabet model inference failed: {error}",
+                    "word": None, "confidence": 0
+                })
+                return
             conf = float(np.max(prediction))
 
             if conf >= confidence_threshold:
@@ -181,7 +198,14 @@ def handle_process_frame_ws(data):
 
         if len(sess['sequence']) == sequence_length:
             input_data = np.expand_dims(sess['sequence'], axis=0)
-            prediction = model_words(input_data, training=False).numpy()[0]
+            try:
+                prediction = model_words(input_data, training=False).numpy()[0]
+            except (ValueError, RuntimeError) as error:
+                emit('frame_result', {
+                    "running": True, "error": f"Words model inference failed: {error}",
+                    "word": None, "confidence": 0
+                })
+                return
             conf = float(np.max(prediction))
 
             if conf >= confidence_threshold:

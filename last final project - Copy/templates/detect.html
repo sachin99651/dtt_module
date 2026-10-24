@@ -630,6 +630,10 @@
         imgEl.style.display = 'block';
       }
       frameInFlight = false;
+      if (data.error) {
+        errEl.textContent = data.error;
+        errEl.style.display = 'block';
+      }
 
       const wordEl = document.getElementById('predWord');
       const word = data.word;
