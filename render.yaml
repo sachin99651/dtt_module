@@ -6,3 +6,6 @@ services:
     buildCommand: pip install -r "last final project - Copy/requirements.txt"
     startCommand: gunicorn --chdir "last final project - Copy" --worker-class eventlet --workers 1 --bind 0.0.0.0:$PORT app:app
     healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.13
