@@ -244,11 +244,15 @@ def handle_process_frame_ws(data):
             sess['confidence'] = 0.0
 
     word_out = sess['word'] if sess['word'] != '...' else None
+    sequence_progress = len(sess['sequence']) if sess['mode'] == 'words' else 0
+    hand_progress = sum(np.any(frame != 0) for frame in sess['sequence']) if sess['mode'] == 'words' else 0
     
     emit('frame_result', {
         "running": True,
         "word": word_out,
         "confidence": round(sess['confidence'] * 100, 1),
+        "sequence_progress": sequence_progress,
+        "hand_progress": hand_progress,
         "image": None
     })
 

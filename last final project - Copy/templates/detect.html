@@ -680,6 +680,9 @@
       if (word && word !== '...') {
         wordEl.textContent = word.replace('_', ' ').toUpperCase();
         wordEl.classList.remove('idle');
+      } else if (data.sequence_progress < 75) {
+        wordEl.textContent = `collecting ${data.sequence_progress}/75`;
+        wordEl.classList.add('idle');
       } else {
         wordEl.textContent = 'waiting...';
         wordEl.classList.add('idle');
