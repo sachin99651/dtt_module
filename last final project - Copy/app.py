@@ -104,6 +104,18 @@ def run_word_inference(session_id, socket_id, sequence):
     finally:
         word_inference_lock.release()
 
+def queue_word_frame(session_id, socket_id, landmarks):
+    sess = get_session(session_id)
+    with sessions_lock:
+        sess['sequence'].append(
+            landmarks if landmarks is not None else np.zeros(21 * 3, dtype=np.float32)
+        )
+        sess['sequence'] = sess['sequence'][-sequence_length:]
+        sequence = list(sess['sequence'])
+    hand_progress = sum(np.any(frame != 0) for frame in sequence)
+    if len(sequence) == sequence_length and hand_progress >= 10:
+        run_word_inference(session_id, socket_id, sequence)
+
 def extract_landmarks(frame_bgr):
     small_frame = cv2.resize(frame_bgr, (160, 120))
     image_rgb = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
@@ -218,6 +230,22 @@ def handle_process_frame_ws(data):
             return
     mode = sess['mode']
     now = time.time()
+
+    if mode == 'words' and has_browser_landmarks:
+        socketio.start_background_task(
+            queue_word_frame, session_id, request.sid, landmarks
+        )
+        sequence_progress = len(sess['sequence'])
+        hand_progress = sum(np.any(frame != 0) for frame in sess['sequence'])
+        emit('frame_result', {
+            "running": True,
+            "word": sess['word'] if sess['word'] != '...' else None,
+            "confidence": round(sess['confidence'] * 100, 1),
+            "sequence_progress": sequence_progress,
+            "hand_progress": hand_progress,
+            "image": None
+        })
+        return
 
     # ── Alphabet mode (Single-Frame Static) ──
     if mode == 'alphabet':
