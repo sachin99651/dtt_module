@@ -48,7 +48,7 @@ sequence_length = 75
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils # Added drawing utility
 hands_processor = mp_hands.Hands(
-    static_image_mode=False, max_num_hands=1,
+    static_image_mode=True, max_num_hands=1,
     min_detection_confidence=0.5, min_tracking_confidence=0.5)
 hands_lock = threading.Lock()
 
