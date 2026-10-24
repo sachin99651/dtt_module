@@ -261,10 +261,15 @@ def handle_process_frame_ws(data):
             socketio.start_background_task(
                 run_word_inference, session_id, request.sid, sequence
             )
-
-        if time.time() > sess['display_until']:
-            sess['word'] = '...'
-            sess['confidence'] = 0.0
+        emit('frame_result', {
+            "running": True,
+            "word": sess['word'] if sess['word'] != '...' else None,
+            "confidence": round(sess['confidence'] * 100, 1),
+            "sequence_progress": len(sequence),
+            "hand_progress": hand_frame_count,
+            "image": None
+        })
+        return
 
     word_out = sess['word'] if sess['word'] != '...' else None
     sequence_progress = len(sess['sequence']) if sess['mode'] == 'words' else 0
