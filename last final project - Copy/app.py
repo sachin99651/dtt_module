@@ -191,12 +191,14 @@ def handle_process_frame_ws(data):
 
     # ── Words mode (75-Frame Sequence) ──
     elif mode == 'words':
-        confidence_threshold = 0.80
-        if landmarks is not None:
-            sess['sequence'].append(landmarks)
+        confidence_threshold = 0.60
+        sess['sequence'].append(
+            landmarks if landmarks is not None else np.zeros(21 * 3, dtype=np.float32)
+        )
         sess['sequence'] = sess['sequence'][-sequence_length:]
 
-        if len(sess['sequence']) == sequence_length:
+        hand_frame_count = sum(np.any(frame != 0) for frame in sess['sequence'])
+        if len(sess['sequence']) == sequence_length and hand_frame_count >= 10:
             input_data = np.expand_dims(sess['sequence'], axis=0)
             try:
                 prediction = model_words(input_data, training=False).numpy()[0]
