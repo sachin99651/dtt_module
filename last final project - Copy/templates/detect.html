@@ -632,7 +632,7 @@
     });
     hands.onResults((results) => {
       const hand = results.multiHandLandmarks?.[0];
-      socket.emit('process_frame_ws', {
+      socket.emit('process_landmarks_ws', {
         landmarks: hand ? hand.flatMap(point => [point.x, point.y, point.z]) : null,
         session_id: SESSION_ID
       });

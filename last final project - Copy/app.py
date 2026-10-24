@@ -184,6 +184,31 @@ def http_set_mode():
     return jsonify({"status": "ok", "mode": mode})
 
 # ─── WebSocket Event for Real-Time Frame Processing ──────────────────────────
+@socketio.on('process_landmarks_ws')
+def handle_process_landmarks_ws(data):
+    session_id = data.get('session_id', request.sid)
+    sess = get_session(session_id)
+    if not sess['running']:
+        emit('frame_result', {"running": False, "word": None, "confidence": 0})
+        return
+    values = data.get('landmarks')
+    landmarks = None if values is None else np.asarray(values, dtype=np.float32)
+    if landmarks is not None and landmarks.shape != (63,):
+        emit('frame_result', {
+            "running": True, "error": "Invalid hand landmark data.",
+            "word": None, "confidence": 0
+        })
+        return
+    socketio.start_background_task(queue_word_frame, session_id, request.sid, landmarks)
+    emit('frame_result', {
+        "running": True,
+        "word": sess['word'] if sess['word'] != '...' else None,
+        "confidence": round(sess['confidence'] * 100, 1),
+        "sequence_progress": len(sess['sequence']),
+        "hand_progress": sum(np.any(frame != 0) for frame in sess['sequence']),
+        "image": None
+    })
+
 @socketio.on('process_frame_ws')
 def handle_process_frame_ws(data):
     session_id = data.get('session_id', request.sid)
